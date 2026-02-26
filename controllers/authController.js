@@ -76,7 +76,10 @@ function login(req, res, next) {
 }
 
 function logout(req, res) {
-  res.send("ciao da logout");
+  res
+    .clearCookie("access_token")
+    .status(200)
+    .json({ Message: "Logout effettuato con successo" });
 }
 
 export { register, login, logout };
