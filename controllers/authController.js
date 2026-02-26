@@ -64,7 +64,6 @@ function login(req, res, next) {
         expiresIn: "1h",
       });
 
-      console.log(token);
       res
         .cookie("access_token", token, {
           maxAge: 3600000,
