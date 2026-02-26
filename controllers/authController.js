@@ -1,6 +1,7 @@
 import connection from "../db/connection.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import cookie from "cookie-parser";
 function register(req, res, next) {
   const { name, surname, email, password } = req.body;
   const saltRounds = 10;
@@ -49,7 +50,8 @@ function login(req, res, next) {
         Error: "Error 400",
       });
     }
-    const keyPassword = result[0].password;
+    const resultUser = result[0];
+    const keyPassword = resultUser.password;
     bcrypt.compare(password, keyPassword, function (err, result) {
       if (!result) {
         return res.status(400).json({
@@ -57,6 +59,19 @@ function login(req, res, next) {
           Error: "Error 400",
         });
       }
+
+      const token = jwt.sign({ id: resultUser.id }, process.env.PRIVATE_KEY, {
+        expiresIn: "1h",
+      });
+
+      console.log(token);
+      res
+        .cookie("access_token", token, {
+          maxAge: 3600000,
+          httpOnly: true,
+        })
+        .status(200)
+        .json({ message: "Login effettuato" });
     });
   });
 }
