@@ -172,9 +172,26 @@ function store(req, res, next) {
   }
 }
 
-function destroy(req, res) {
-  console.log(req.id);
+function destroy(req, res, next) {
+  const userId = req.id;
+  const taskId = req.params.id;
 
-  res.send("ciao da destroy task");
+  const sqlDestroy = "DELETE FROM tasks WHERE id = ? AND user_id = ?";
+
+  connection.query(sqlDestroy, [taskId, userId], (error, result) => {
+    if (error) return next(error);
+    console.log(result);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        Message: "Task non trovato o non autorizzato alla cancellazione",
+        Error: "Error 404",
+      });
+    }
+
+    res.json({
+      status: "success",
+      message: "Task eliminato correttamente!",
+    });
+  });
 }
 export { index, store, destroy };
