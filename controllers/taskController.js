@@ -1,11 +1,12 @@
 import connection from "../db/connection.js";
+import { validPriorities, validStatuses } from "../constants/taskConstants.js";
 function index(req, res, next) {
   const sqlUser =
     "select users.id, users.name, users.surname, users.email from users where users.id = ?";
 
   let sqlTasks = `select tasks.id as "tasks_id", tasks.title, tasks.description, tasks.status,  tasks.priority, tasks.scheduled_at, categories.name as "categories_name",  categories.color  from tasks left join categories on categories.id = tasks.category_id WHERE tasks.user_id = ?`;
   const { status, priority, category, sort } = req.query;
-  const params = [1];
+  const params = [req.id];
 
   if (status) {
     sqlTasks += ` AND tasks.status = ?`;
@@ -27,7 +28,7 @@ function index(req, res, next) {
   }
   sqlTasks += ` ORDER BY tasks.scheduled_at IS NULL ASC, tasks.scheduled_at ${direction}`;
 
-  connection.query(sqlUser, [1], (error, result) => {
+  connection.query(sqlUser, [req.id], (error, result) => {
     if (error) return next(error);
     if (result.length === 0) {
       return res.status(404).json({
@@ -75,13 +76,105 @@ function index(req, res, next) {
   });
 }
 
-function store(req, res) {
-  console.log(req.id);
-  res.send("ciao da store task");
+function store(req, res, next) {
+  const { title, description, status, priority, scheduled_at, category_id } =
+    req.body;
+  const idUtente = req.id;
+  const columns = ["user_id"];
+  const params = [idUtente];
+  if (req.body === undefined || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      Message: "Dati mancanti",
+      Error: "Error 400",
+    });
+  }
+  if (!title) {
+    return res.status(400).json({
+      Message: "Titolo necessario",
+      Error: "Error 400",
+    });
+  }
+  columns.push("title");
+  params.push(title.trim());
+  if (description) {
+    columns.push("description");
+    params.push(description.trim());
+  }
+
+  if (priority) {
+    const chekedPriority = validPriorities.find(
+      (p) => p.value === priority.toLowerCase(),
+    );
+
+    if (!chekedPriority) {
+      return res.status(400).json({
+        Message: "Priorità non valido",
+        Error: "Error 400",
+      });
+    }
+    columns.push("priority");
+    params.push(priority.trim());
+  }
+  if (status) {
+    const chekedStatus = validStatuses.find(
+      (s) => s.value === status.toLowerCase(),
+    );
+    if (!chekedStatus) {
+      return res.status(400).json({
+        Message: "Stato non valido",
+        Error: "Error 400",
+      });
+    }
+    columns.push("status");
+    params.push(status.trim().toLowerCase());
+  }
+  const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+  if (scheduled_at) {
+    if (!dateRegex.test(scheduled_at)) {
+      return res.status(400).json({
+        Message: "Formato data non valido. Usa YYYY-MM-DD HH:mm:ss",
+        Error: "Error 400",
+      });
+    }
+    columns.push("scheduled_at");
+    params.push(scheduled_at);
+  }
+
+  function insertTask() {
+    const placeholders = params.map(() => "?").join(", ");
+    const sqlInsertTask = `INSERT INTO tasks (${columns.join(", ")}) VALUES (${placeholders})`;
+    connection.query(sqlInsertTask, params, (error, result) => {
+      if (error) return next(error);
+      res.status(201).json({
+        status: "success",
+        message: "Task creato correttamente!",
+        taskId: result.insertId,
+      });
+    });
+  }
+
+  if (category_id) {
+    const sqlCategory = "Select * from categories WHERE id = ?";
+    connection.query(sqlCategory, [category_id], (error, result) => {
+      if (error) return next(error);
+      if (result.length === 0) {
+        return res.status(400).json({
+          Message: "Categoria non valida",
+          Error: "Error 400",
+        });
+      }
+      columns.push("category_id");
+      params.push(category_id);
+      insertTask();
+    });
+  } else {
+    insertTask();
+  }
 }
 
 function destroy(req, res) {
   console.log(req.id);
+
   res.send("ciao da destroy task");
 }
 export { index, store, destroy };
