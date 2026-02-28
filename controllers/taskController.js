@@ -5,7 +5,7 @@ function index(req, res, next) {
 
   let sqlTasks = `select tasks.id as "tasks_id", tasks.title, tasks.description, tasks.status,  tasks.priority, tasks.scheduled_at, categories.name as "categories_name",  categories.color  from tasks left join categories on categories.id = tasks.category_id WHERE tasks.user_id = ?`;
   const { status, priority, category, sort } = req.query;
-  const params = [req.id];
+  const params = [1];
 
   if (status) {
     sqlTasks += ` AND tasks.status = ?`;
@@ -27,12 +27,12 @@ function index(req, res, next) {
   }
   sqlTasks += ` ORDER BY tasks.scheduled_at IS NULL ASC, tasks.scheduled_at ${direction}`;
 
-  connection.query(sqlUser, [req.id], (error, result) => {
+  connection.query(sqlUser, [1], (error, result) => {
     if (error) return next(error);
     if (result.length === 0) {
       return res.status(404).json({
         Message: "Utente non trovato",
-        Error: "Error 400",
+        Error: "Error 404",
       });
     }
     const user = {

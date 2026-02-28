@@ -1,4 +1,9 @@
 export default function userValidation(req, res, next) {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res
+      .status(400)
+      .json({ Message: "Dati mancanti", error: "Error 400" });
+  }
   const { name, surname, email, password } = req.body;
   const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!name || name.trim() === "") {

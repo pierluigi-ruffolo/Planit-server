@@ -40,13 +40,26 @@ function register(req, res, next) {
 }
 
 function login(req, res, next) {
+  if (req.body === undefined || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      Message: "Dati mancanti",
+      Error: "Error 400",
+    });
+  }
   const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({
+      Message: "Email e Password sono obbligatorie",
+      Error: "Error 400",
+    });
+  }
+
   const checkmail = "select * from users where email = ?";
   connection.query(checkmail, [email], (error, result) => {
     if (error) return next(error);
     if (result.length === 0) {
       return res.status(400).json({
-        Message: "Email non valida",
+        Message: "Credenziali non valide",
         Error: "Error 400",
       });
     }
@@ -55,7 +68,7 @@ function login(req, res, next) {
     bcrypt.compare(password, keyPassword, function (err, result) {
       if (!result) {
         return res.status(400).json({
-          Message: "Password non valida",
+          Message: "Credenziali non valide",
           Error: "Error 400",
         });
       }
