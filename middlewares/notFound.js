@@ -1,6 +1,6 @@
 export default function notFound(req, res, next) {
   return res.status(404).json({
-    error: "NOT FOUND",
-    message: "Pagina non trovata",
+    message: "La risorsa richiesta non è stata trovata sul server",
+    error: "RESOURCE_NOT_FOUND",
   });
 }

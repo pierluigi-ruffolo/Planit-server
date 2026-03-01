@@ -11,9 +11,9 @@ function register(req, res, next) {
     if (error) return next(error);
     if (resalt.length !== 0) {
       return res.status(400).json({
-        Message:
-          "Questa email è già associata a un account. Prova a fare il login.",
-        error: "Error 400",
+        message:
+          "Questa email è già associata a un account. Prova a effettuare il login.",
+        error: "EMAIL_ALREADY_EXISTS",
       });
     }
 
@@ -42,15 +42,15 @@ function register(req, res, next) {
 function login(req, res, next) {
   if (req.body === undefined || Object.keys(req.body).length === 0) {
     return res.status(400).json({
-      Message: "Dati mancanti",
-      Error: "Error 400",
+      message: "Dati di accesso non ricevuti",
+      error: "MISSING_DATA",
     });
   }
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({
-      Message: "Email e Password sono obbligatorie",
-      Error: "Error 400",
+      message: "Email e Password sono campi obbligatori",
+      error: "REQUIRED_FIELDS",
     });
   }
 
@@ -59,17 +59,18 @@ function login(req, res, next) {
     if (error) return next(error);
     if (result.length === 0) {
       return res.status(400).json({
-        Message: "Credenziali non valide",
-        Error: "Error 400",
+        message: "Credenziali non valide. Riprova.",
+        error: "INVALID_CREDENTIALS",
       });
     }
     const resultUser = result[0];
     const keyPassword = resultUser.password;
     bcrypt.compare(password, keyPassword, function (err, result) {
+      if (err) return next(err);
       if (!result) {
         return res.status(400).json({
-          Message: "Credenziali non valide",
-          Error: "Error 400",
+          message: "Credenziali non valide. Riprova.",
+          error: "INVALID_CREDENTIALS",
         });
       }
 
@@ -83,16 +84,19 @@ function login(req, res, next) {
           httpOnly: true,
         })
         .status(200)
-        .json({ message: "Login effettuato" });
+        .json({
+          status: "success",
+          message: "Login effettuato con successo",
+        });
     });
   });
 }
 
 function logout(req, res) {
-  res
-    .clearCookie("access_token")
-    .status(200)
-    .json({ Message: "Logout effettuato con successo" });
+  res.clearCookie("access_token").status(200).json({
+    status: "success",
+    message: "Logout effettuato con successo",
+  });
 }
 
 export { register, login, logout };

@@ -1,42 +1,53 @@
 export default function userValidation(req, res, next) {
   if (!req.body || Object.keys(req.body).length === 0) {
-    return res
-      .status(400)
-      .json({ Message: "Dati mancanti", error: "Error 400" });
+    return res.status(400).json({
+      message: "Non sono stati ricevuti dati per la creazione dell'account",
+      error: "MISSING_REGISTRATION_DATA",
+    });
   }
+
   const { name, surname, email, password } = req.body;
   const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
   if (!name || name.trim() === "") {
     return res.status(400).json({
-      Message: "Il nome è obbligatorio per creare un account.",
-      error: "Error 400",
+      message:
+        "Il nome è un campo obbligatorio per completare la registrazione",
+      error: "REQUIRED_NAME",
     });
   }
+
   if (!surname || surname.trim() === "") {
     return res.status(400).json({
-      Message: "Il cognome è obbligatorio per creare un account.",
-      error: "Error 400",
+      message:
+        "Il cognome è un campo obbligatorio per completare la registrazione",
+      error: "REQUIRED_SURNAME",
     });
   }
-  if (!regex.test(email)) {
+
+  if (!email || !regex.test(email)) {
     return res.status(400).json({
-      Message:
-        "L'indirizzo email inserito non sembra corretto. Controlla il formato.",
-      error: "Error 400",
+      message:
+        "L'indirizzo email inserito non è valido. Controlla il formato (es. nome@esempio.com)",
+      error: "INVALID_EMAIL_FORMAT",
     });
   }
-  if (password.length < 8) {
+
+  if (!password || password.length < 8) {
     return res.status(400).json({
-      Message:
-        "La sicurezza è importante: la password deve avere almeno 8 caratteri.",
-      error: "Error 400",
+      message:
+        "La sicurezza è importante: la password deve contenere almeno 8 caratteri",
+      error: "WEAK_PASSWORD",
     });
   }
-  const formattedName = name[0].toUpperCase() + name.slice(1).toLowerCase();
+
+  const formattedName =
+    name.trim()[0].toUpperCase() + name.trim().slice(1).toLowerCase();
   const formattedSurname =
-    surname[0].toUpperCase() + surname.slice(1).toLowerCase();
+    surname.trim()[0].toUpperCase() + surname.trim().slice(1).toLowerCase();
 
   req.body.name = formattedName;
   req.body.surname = formattedSurname;
+
   next();
 }

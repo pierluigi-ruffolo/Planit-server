@@ -1,5 +1,6 @@
 import connection from "../db/connection.js";
 import { validPriorities, validStatuses } from "../constants/taskConstants.js";
+
 function index(req, res, next) {
   const sqlUser =
     "select users.id, users.name, users.surname, users.email from users where users.id = ?";
@@ -32,8 +33,8 @@ function index(req, res, next) {
     if (error) return next(error);
     if (result.length === 0) {
       return res.status(404).json({
-        Message: "Utente non trovato",
-        Error: "Error 404",
+        message: "Utente non trovato nel sistema",
+        error: "NOT_FOUND",
       });
     }
     const user = {
@@ -69,7 +70,7 @@ function index(req, res, next) {
       }
       res.json({
         user,
-        lengthTasks: tasksUser.length,
+        totalTasks: tasksUser.length,
         tasksUser,
       });
     });
@@ -82,20 +83,23 @@ function store(req, res, next) {
   const idUtente = req.id;
   const columns = ["user_id"];
   const params = [idUtente];
+
   if (req.body === undefined || Object.keys(req.body).length === 0) {
     return res.status(400).json({
-      Message: "Dati mancanti",
-      Error: "Error 400",
+      message: "Non sono stati ricevuti dati per la creazione del task",
+      error: "MISSING_DATA",
     });
   }
   if (!title) {
     return res.status(400).json({
-      Message: "Titolo necessario",
-      Error: "Error 400",
+      message: "Il titolo è un campo obbligatorio",
+      error: "REQUIRED_FIELD",
     });
   }
+
   columns.push("title");
   params.push(title.trim());
+
   if (description) {
     columns.push("description");
     params.push(description.trim());
@@ -108,32 +112,35 @@ function store(req, res, next) {
 
     if (!chekedPriority) {
       return res.status(400).json({
-        Message: "Priorità non valido",
-        Error: "Error 400",
+        message: "Il livello di priorità inserito non è valido",
+        error: "INVALID_PRIORITY",
       });
     }
     columns.push("priority");
     params.push(priority.trim());
   }
+
   if (status) {
     const chekedStatus = validStatuses.find(
       (s) => s.value === status.toLowerCase(),
     );
     if (!chekedStatus) {
       return res.status(400).json({
-        Message: "Stato non valido",
-        Error: "Error 400",
+        message: "Lo stato selezionato non è valido",
+        error: "INVALID_STATUS",
       });
     }
     columns.push("status");
     params.push(status.trim().toLowerCase());
   }
+
   const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
   if (scheduled_at) {
     if (!dateRegex.test(scheduled_at)) {
       return res.status(400).json({
-        Message: "Formato data non valido. Usa YYYY-MM-DD HH:mm:ss",
-        Error: "Error 400",
+        message:
+          "Formato data non valido. Utilizzare il formato YYYY-MM-DD HH:mm:ss",
+        error: "INVALID_DATE_FORMAT",
       });
     }
     columns.push("scheduled_at");
@@ -147,7 +154,7 @@ function store(req, res, next) {
       if (error) return next(error);
       res.status(201).json({
         status: "success",
-        message: "Task creato correttamente!",
+        message: "Nuovo task creato con successo",
         taskId: result.insertId,
       });
     });
@@ -159,8 +166,8 @@ function store(req, res, next) {
       if (error) return next(error);
       if (result.length === 0) {
         return res.status(400).json({
-          Message: "Categoria non valida",
-          Error: "Error 400",
+          message: "La categoria selezionata non esiste",
+          error: "INVALID_CATEGORY",
         });
       }
       columns.push("category_id");
@@ -172,6 +179,119 @@ function store(req, res, next) {
   }
 }
 
+function modify(req, res, next) {
+  const idUser = req.id;
+  const idTask = req.params.id;
+  const updates = [];
+  const params = [];
+  const { title, description, status, priority, scheduled_at, category_id } =
+    req.body;
+
+  if (req.body === undefined || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      message: "Dati mancanti per l'aggiornamento del task",
+      error: "MISSING_DATA",
+    });
+  }
+
+  if (title) {
+    updates.push("title = ?");
+    params.push(title.trim());
+  }
+
+  if (description) {
+    updates.push("description = ?");
+    params.push(description.trim());
+  }
+
+  if (status) {
+    const chekedStatus = validStatuses.find(
+      (s) => s.value === status.trim().toLowerCase(),
+    );
+
+    if (!chekedStatus) {
+      return res.status(400).json({
+        message: "Lo stato richiesto non è tra quelli validi",
+        error: "INVALID_STATUS",
+      });
+    }
+    updates.push("status = ?");
+    params.push(status.trim().toLowerCase());
+  }
+
+  if (priority) {
+    const chekedPriority = validPriorities.find(
+      (p) => p.value === priority.trim().toLowerCase(),
+    );
+    if (!chekedPriority) {
+      return res.status(400).json({
+        message: "Il valore di priorità non è valido",
+        error: "INVALID_PRIORITY",
+      });
+    }
+    updates.push("priority = ?");
+    params.push(priority.trim().toLowerCase());
+  }
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+  if (scheduled_at) {
+    if (!dateRegex.test(scheduled_at)) {
+      return res.status(400).json({
+        message: "Formato data non valido. Usa YYYY-MM-DD HH:mm:ss",
+        error: "INVALID_DATE_FORMAT",
+      });
+    }
+    updates.push("scheduled_at = ?");
+    params.push(scheduled_at);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({
+      message: "Nessun campo valido fornito per la modifica",
+      error: "NO_VALID_FIELDS",
+    });
+  }
+
+  function updateTask() {
+    const formatUpdates = updates.join(", ");
+    const sqlUpdate = `UPDATE tasks set ${formatUpdates} WHERE id = ? AND user_id = ?`;
+    params.push(idTask);
+    params.push(idUser);
+    connection.query(sqlUpdate, params, (error, result) => {
+      if (error) return next(error);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          message:
+            "Impossibile modificare il task: ID non trovato o permessi insufficienti",
+          error: "UPDATE_FAILED",
+        });
+      }
+      res.json({
+        status: "success",
+        message: "Il task è stato aggiornato correttamente",
+      });
+    });
+  }
+
+  if (category_id) {
+    const sql = "SELECT * FROM categories where id = ?";
+    connection.query(sql, [category_id], (error, result) => {
+      if (error) return next(error);
+      if (result.length === 0) {
+        return res.status(400).json({
+          message: "La categoria specificata non è valida",
+          error: "INVALID_CATEGORY",
+        });
+      }
+      updates.push("category_id = ?");
+      params.push(category_id);
+      updateTask();
+    });
+  } else {
+    updateTask();
+  }
+}
+
 function destroy(req, res, next) {
   const userId = req.id;
   const taskId = req.params.id;
@@ -180,18 +300,19 @@ function destroy(req, res, next) {
 
   connection.query(sqlDestroy, [taskId, userId], (error, result) => {
     if (error) return next(error);
-    console.log(result);
     if (result.affectedRows === 0) {
       return res.status(404).json({
-        Message: "Task non trovato o non autorizzato alla cancellazione",
-        Error: "Error 404",
+        message:
+          "Impossibile eliminare il task: ID non trovato o non autorizzato",
+        error: "DELETE_FAILED",
       });
     }
 
     res.json({
       status: "success",
-      message: "Task eliminato correttamente!",
+      message: "Il task è stato rimosso definitivamente",
     });
   });
 }
-export { index, store, destroy };
+
+export { index, store, destroy, modify };
