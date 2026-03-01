@@ -4,6 +4,7 @@ import routerAuth from "./routers/authRouters.js";
 import notFound from "./middlewares/notFound.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import cookieParser from "cookie-parser";
+import routerConfig from "./routers/configRoutes.js";
 const app = express();
 const port = process.env.PORT;
 app.use(cookieParser());
@@ -11,7 +12,7 @@ app.use(express.json());
 
 app.use("/api/tasks", routerTask);
 app.use("/api/auth", routerAuth);
-
+app.use("/api/config", routerConfig);
 app.use(notFound);
 app.use(errorHandler);
 app.listen(port, () => {

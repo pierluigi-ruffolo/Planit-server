@@ -1,7 +1,7 @@
 import connection from "../db/connection.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import cookie from "cookie-parser";
+
 function register(req, res, next) {
   const { name, surname, email, password } = req.body;
   const saltRounds = 10;
