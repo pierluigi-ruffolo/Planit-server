@@ -87,6 +87,12 @@ function login(req, res, next) {
         .json({
           status: "success",
           message: "Login effettuato con successo",
+          user: {
+            id: resultUser.id,
+            name: resultUser.name,
+            surname: resultUser.surname,
+            email: resultUser.email,
+          },
         });
     });
   });
