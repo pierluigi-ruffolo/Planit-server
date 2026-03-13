@@ -104,5 +104,21 @@ function logout(req, res) {
     message: "Logout effettuato con successo",
   });
 }
-
-export { register, login, logout };
+function checkAuth(req, res, next) {
+  const id = req.id;
+  const sql = "select * from users where users.id = ?";
+  connection.query(sql, [id], (error, result) => {
+    if (error) return next(error);
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Utente non trovato" });
+    }
+    const user = result[0];
+    res.json({
+      id: user.id,
+      name: user.name,
+      surname: user.surname,
+      email: user.email,
+    });
+  });
+}
+export { register, login, logout, checkAuth };
