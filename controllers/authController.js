@@ -10,7 +10,7 @@ function register(req, res, next) {
   connection.query(checkedMail, [formatMail], (error, resalt) => {
     if (error) return next(error);
     if (resalt.length !== 0) {
-      return res.status(400).json({
+      return res.status(409).json({
         message:
           "Questa email è già associata a un account. Prova a effettuare il login.",
         error: "EMAIL_ALREADY_EXISTS",
@@ -58,7 +58,7 @@ function login(req, res, next) {
   connection.query(checkmail, [email], (error, result) => {
     if (error) return next(error);
     if (result.length === 0) {
-      return res.status(400).json({
+      return res.status(401).json({
         message: "Credenziali non valide. Riprova.",
         error: "INVALID_CREDENTIALS",
       });
@@ -68,7 +68,7 @@ function login(req, res, next) {
     bcrypt.compare(password, keyPassword, function (err, result) {
       if (err) return next(err);
       if (!result) {
-        return res.status(400).json({
+        return res.status(401).json({
           message: "Credenziali non valide. Riprova.",
           error: "INVALID_CREDENTIALS",
         });
